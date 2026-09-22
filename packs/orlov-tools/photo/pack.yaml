@@ -14,10 +14,10 @@ apiVersion: aios.dev/v1alpha1
 kind: Pack
 
 metadata:
-  namespace: orlov-tools   # ЗАМЕНИТЕ на своё, если это черновик: закрепляется навсегда
+  namespace: orlov-tools
   name: photo
   version: 1.0.0
-  publisher: pub_orlov-tools
+  publisher: pub_b0eabce7e16d
   title: Фото и видеосъёмка
   summary: >-
     Ведёт дело о съёмке на заказ от заявки до передачи материала: бриф, смета
