@@ -1,0 +1,56 @@
+# orlov-tools/photo — Фото и видеосъёмка.
+#
+# Направление для тех, кто снимает на заказ: фотографы и видеографы, разовые
+# съёмки и проекты. Дело о съёмке ведёт от заявки до передачи материала:
+# бриф, смета и договор, съёмка, обработка, показ, передача и оплата.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ ИЗ ВОЗМОЖНЫХ. network:egress — коннекторов
+# нет, наружу ходить незачем; source:query — своих источников у направления
+# нет; traces:raw и traces:sample_redacted — в деле переписка с заказчиками и
+# планы чужих праздников, автору пака незачем видеть это ни в каком виде;
+# learn:propose — направление ничего не предлагает в отраслевой корпус.
+
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools   # ЗАМЕНИТЕ на своё, если это черновик: закрепляется навсегда
+  name: photo
+  version: 1.0.0
+  publisher: pub_orlov-tools
+  title: Фото и видеосъёмка
+  summary: >-
+    Ведёт дело о съёмке на заказ от заявки до передачи материала: бриф, смета
+    и договор, съёмка, обработка, показ, акт и оплата. Помогает фотографу
+    держать сроки сдачи и аренду студии, а заказчику — видеть этапы и принимать
+    работу по акту. Сам студию не бронирует и файлы не пересылает — это
+    остаётся за людьми.
+  license: MIT
+  categories: [documents, sourcing]
+  keywords: [photo, video, photographer, videographer, shooting, studio, album, retouch, wedding, lovestory]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [photo]
+    agents: [shooter]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  # В деле о съёмке: обычные сведения (вид, дата, место), личные (контакты
+  # заказчика, кто и где на кадрах) и деньги (смета, аренда, гонорары).
+  reads_sensitivity: [normal, pii, financial]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/
