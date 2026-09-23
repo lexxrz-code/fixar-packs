@@ -1,0 +1,294 @@
+id: beauty
+title: Индустрия красоты
+version: 1
+description: |-
+  Пак для мастеров и салонов красоты: маникюр и педикюр, стрижки
+  и окрашивание, брови и ресницы, макияж, уходы для лица и тела.
+  Сущности — «визит», «услуга» и «сертификат» с формами: категория,
+  мастер, дата и время, длительность, цена, номинал и срок сертификата.
+  Сделки — «запись на услугу», «курс процедур» и «продажа подарочного
+  сертификата» с этапами от заявки до приёмки работы и оплаты. Документы:
+  договор, прайс-лист, согласие на процедуру, акт выполненных работ.
+  Смена ролей: исполнитель — мастер или салон, заказчик — клиент;
+  салон, сдавая кресло мастеру, сам становится заказчиком аренды.
+  Медицинскую косметологию, инъекции и назначения ведёт соседнее
+  направление «медицина» — здесь только эстетические услуги.
+
+entity_types:
+  - type: visit
+    title: Визит
+    capacity: true
+    sensitivity: normal
+    form:
+      - key: category
+        title: Категория услуги
+        kind: enum
+        required: true
+        options:
+          - маникюр
+          - педикюр
+          - стрижка
+          - окрашивание
+          - брови и ресницы
+          - макияж
+          - уход для лица
+          - уход для тела
+      - key: master
+        title: Мастер
+        kind: text
+        required: true
+      - key: date
+        title: Дата и время
+        kind: date
+        required: true
+        hint: дд.мм.гггг
+      - key: minutes
+        title: Длительность
+        kind: number
+        required: false
+        unit: мин
+      - key: price
+        title: Цена
+        kind: money
+        required: false
+  - type: service
+    title: Услуга
+    capacity: false
+    sensitivity: normal
+    form:
+      - key: title
+        title: Название
+        kind: text
+        required: true
+      - key: category
+        title: Категория
+        kind: enum
+        required: true
+        options:
+          - ногти
+          - волосы
+          - брови и ресницы
+          - макияж
+          - уходы
+      - key: minutes
+        title: Длительность
+        kind: number
+        required: false
+        unit: мин
+      - key: price
+        title: Цена
+        kind: money
+        required: false
+      - key: materials
+        title: Расход материалов
+        kind: money
+        required: false
+  - type: certificate
+    title: Подарочный сертификат
+    capacity: false
+    sensitivity: normal
+    form:
+      - key: nominal
+        title: Номинал
+        kind: money
+        required: true
+      - key: due
+        title: Действует до
+        kind: date
+        required: true
+        hint: дд.мм.гггг
+      - key: holder
+        title: Для кого
+        kind: text
+        required: false
+      - key: used
+        title: Погашен
+        kind: bool
+        required: false
+
+party_roles:
+  - role: master
+    title: Мастер
+    likely_user: true
+  - role: salon
+    title: Салон
+    likely_user: true
+  - role: client
+    title: Клиент
+    likely_user: true
+
+deal_kinds:
+  - kind: appointment
+    title: Запись на услугу
+    stages:
+      - заявка
+      - подбор услуги и времени
+      - подтверждение записи
+      - визит
+      - приёмка работы
+      - оплата
+  - kind: course
+    title: Курс процедур
+    stages:
+      - заявка
+      - консультация
+      - план курса и предоплата
+      - процедуры
+      - итоговый осмотр
+      - окончательный расчёт
+  - kind: certificate_sale
+    title: Продажа подарочного сертификата
+    stages:
+      - заявка
+      - оформление
+      - оплата
+      - выдача
+      - погашение
+
+document_kinds:
+  - договор оказания услуг
+  - прайс-лист
+  - согласие на процедуру
+  - акт выполненных работ
+  - журнал записи
+  - соглашение о подарочном сертификате
+
+passages:
+  - ability: buyer_search
+    title: Подобрать предложения
+    state: сами
+    sources: 1
+  - ability: lookup
+    title: Справка о предмете
+    state: сами
+    sources: 1
+
+personal_agent_presets: []
+
+case_templates:
+  - id: beauty.visit
+    version: 1
+    title: Разовый визит
+    kind: task
+    intake:
+      - key: category
+        title: Категория услуги
+        kind: enum
+        required: true
+        options:
+          - маникюр
+          - педикюр
+          - стрижка
+          - окрашивание
+          - брови и ресницы
+          - макияж
+          - уход для лица
+          - уход для тела
+      - {key: date, title: Дата и время, kind: date}
+      - {key: wish, title: Что важно получить, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, visit, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: visit}
+        - {source: visit, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Визит состоялся, работа принята клиентом и отмечена в деле.
+      - Предложен акт выполненных работ с согласованной ценой.
+      - "Прямо сказано, чего пак не делает: запись за клиента не ставит и оплату не проводит."
+  - id: beauty.certificate
+    version: 1
+    title: Подарочный сертификат
+    kind: task
+    intake:
+      - {key: nominal, title: Номинал, kind: money, required: true}
+      - {key: due, title: Действует до, kind: date}
+      - {key: holder, title: Для кого, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, issued, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: issued}
+        - {source: issued, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Сертификат оформлен и выдан, номинал и срок записаны в деле.
+      - Погашение отмечено в деле с указанием визита.
+      - Напоминание о сроке действия предложено заранее.
+
+practice:
+  kinds:
+    - id: mastering
+      title: Кабинет мастера
+      professional_role: master
+      client_role: client
+      client_title: Клиент
+      reference_corpora: []
+
+platform_abilities:
+  - key: visit_grid
+    title: Держать сетку записи на визиты
+    mode: own_corpus
+    note: >
+      Записи живут в самом деле: услуга, мастер, дата и время, длительность.
+      Правки видны в журнале дела; напоминание о визите приходит заранее.
+
+  - key: consent_check
+    title: Собрать согласие на процедуру и отметить противопоказания
+    mode: own_corpus
+    note: >
+      Список вопросов перед процедурой в самом деле: аллергии, беременность,
+      недавние процедуры. Это не диагностика: при сомнении помощник
+      предлагает спросить врача, а не решает сам.
+
+  - key: online_booking
+    title: Записать клиента в онлайн-календар салона
+    mode: not_built
+    note: >
+      Этого пак не делает: внешние календари салонов не подключены. Запись
+      подтверждает мастер или администратор своими средствами, пак лишь
+      держит договорённость в деле.
+
+  - key: payment
+    title: Принять оплату за услугу или сертификат
+    mode: not_built
+    note: >
+      Оплата проходит мимо площадки: касса салона, перевод мастеру,
+      терминал. Пак отмечает в деле согласованный и фактически
+      полученный результат, но не двигает деньги.
+
+agents:
+  - id: master
+    title: Помощник мастера
+    model: mimo-v2.5
+    label: beauty_master
+    side: need_help
+    min_assurance: 2
+    match_priority: 50
+    capabilities: [dialog, case_patch]
+    sensitivity_clearance: [normal, pii, financial]
+    purpose: >
+      Ведёшь дело о визите вместе с мастером, салоном или клиентом:
+      уточняешь категорию услуги, мастера, дату и время, что важно
+      получить; предлагаешь следующий шаг по сделке — подтверждение записи,
+      визит с согласием на процедуру, приёмка работы с актом, оплата.
+      В курсе процедур держишь план и оставшиеся визиты; в сертификатах —
+      номинал, срок и погашение. Отвечаешь по тому, что принесли в дело:
+      записи, прайсу, словам сторон. Не хватает данных — говоришь, каких
+      именно, а не придумываешь их.
+    never:
+      - "не ставишь запись за клиента и не переносишь её без его слова"
+      - "не проводишь и не обещаешь провести оплату: деньги ходят мимо площадки"
+      - не советуешь медицинские процедуры и назначения — инъекции и лечение ведёт медицина
+      - "не называешь цену от себя: прайс считает и меняет салон или мастер"
+      - "не обещаешь результат, который зависит от кожи и волос конкретного человека"
+      - не записываешь личные данные клиентов вне дела

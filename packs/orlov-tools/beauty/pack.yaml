@@ -1,0 +1,52 @@
+# orlov-tools/beauty — Индустрия красоты.
+#
+# Направление для мастеров и салонов: визиты, курсы процедур, подарочные
+# сертификаты. Дело ведётся от записи до акта выполненных работ.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ ИЗ ВОЗМОЖНЫХ: наружу ходить незачем,
+# своих источников у направления нет, личную переписку мастера с клиентами
+# автору пака незачем видеть ни в каком виде.
+
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: beauty
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: Индустрия красоты
+  summary: >-
+    Ведёт дело о визите в салон красоты от записи до акта: подбор услуги
+    и мастера, подтверждение, визит, приёмка работы и оплата. Держит курсы
+    процедур и подарочные сертификаты с их номиналами и сроками. Запись за
+    клиента не ставит и оплату не проводит — это остаётся за людьми.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [beauty, salon, manicure, pedicure, haircut, makeup, brows, certificate, master, visit]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [beauty]
+    agents: [master]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  # В деле о визите: обычные сведения (услуга, время), личные (контакты
+  # клиента, для кого сертификат) и деньги (цены, номиналы).
+  reads_sensitivity: [normal, pii, financial]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/
