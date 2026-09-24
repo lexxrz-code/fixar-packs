@@ -1,0 +1,272 @@
+# orlov-tools/hotels — Проживание и брони.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ: коннекторов нет,
+# своих источников нет, личные сведения клиентов автору пака не нужны.
+
+id: hotels
+title: Проживание и брони
+version: 1
+description: 'Пак для гостиниц, апарт-отелей и принимающих хозяев: брони номеров,
+
+  длительное проживание, изменение и отмена брони. Сущности — «бронь»,
+
+  «объект размещения» и «гость» с формами: тип номера, даты заезда
+
+  и выезда, число гостей, тариф и залог, правила объекта. Сделки —
+
+  «бронирование проживания», «длительное проживание» и «изменение
+
+  или отмена брони» с этапами от заявки до выселения, сверки счёта
+
+  и оплаты. Документы: договор бронирования, подтверждение брони,
+
+  счёт проживания, акт сверки. Смена ролей: исполнитель — гостиница
+
+  или хозяин объекта, заказчик — гость; гостиница, привлекая клининг
+
+  между заездами, сама становится заказчиком. Поездку целиком ведёт
+
+  соседнее направление «путешествия»; здесь проживание и всё, что
+
+  с ним происходит до, во время и после заезда.'
+party_roles:
+- role: host
+  title: Гостиница или хозяин
+  likely_user: true
+  reciprocal: guest
+- role: guest
+  title: Гость
+  likely_user: true
+  reciprocal: host
+entity_types:
+- type: booking
+  title: Бронь
+  plural: Броньы
+  sensitivity: normal
+  fields:
+  - key: checkin
+    title: Заезд
+    kind: date
+    required: true
+  - key: checkout
+    title: Выезд
+    kind: date
+    required: true
+  - key: guests
+    title: Гостей
+    kind: number
+    required: true
+  - key: rate
+    title: Тариф за ночь
+    kind: money
+    required: false
+  - key: deposit
+    title: Залог
+    kind: money
+    required: false
+  - key: status
+    title: Статус
+    kind: enum
+    required: false
+    options:
+    - заявка
+    - подтверждена
+    - проживание
+    - закрыта
+    - отменена
+- type: property
+  title: Объект размещения
+  plural: Объект размещенияы
+  sensitivity: normal
+  fields:
+  - key: kind
+    title: Тип
+    kind: enum
+    required: true
+    options:
+    - гостиница
+    - апарт-отель
+    - хостел
+    - комната у хозяина
+    - дом целиком
+  - key: address
+    title: Адрес
+    kind: text
+    required: true
+  - key: rooms
+    title: Номеров
+    kind: number
+    required: false
+  - key: rules
+    title: Правила
+    kind: text
+    required: false
+- type: guest
+  title: Гость
+  plural: Гостьы
+  sensitivity: pii
+  fields:
+  - key: name
+    title: Имя
+    kind: text
+    required: true
+  - key: phone
+    title: Телефон
+    kind: text
+    required: false
+  - key: note
+    title: Пожелания
+    kind: text
+    required: false
+deal_kinds:
+- kind: booking
+  title: Бронирование проживания
+  stages:
+  - заявка
+  - подбор варианта
+  - подтверждение брони
+  - заезд
+  - выселение и сверка счёта
+  - оплата
+- kind: longstay
+  title: Длительное проживание
+  stages:
+  - заявка
+  - договор на срок
+  - заселение
+  - ежемесячные сверки
+  - выселение и окончательный расчёт
+- kind: change_cancel
+  title: Изменение или отмена брони
+  stages:
+  - обращение
+  - проверка правил и штрафов
+  - согласование нового варианта
+  - перерасчёт или возврат
+document_kinds:
+- договор бронирования
+- подтверждение брони
+- счёт проживания
+- акт сверки расчётов
+- правила объекта размещения
+case_templates:
+- id: hotels.booking
+  version: 1
+  title: Бронирование проживания
+  kind: task
+  intake:
+  - key: checkin
+    title: Заезд
+    kind: date
+    required: true
+  - key: checkout
+    title: Выезд
+    kind: date
+  - key: guests
+    title: Гостей
+    kind: number
+  - key: wish
+    title: Пожелания
+    kind: text
+  workflow:
+    initial_state: intake
+    states:
+    - intake
+    - confirmed
+    - staying
+    - done
+    terminal_states:
+    - done
+    transitions:
+    - source: intake
+      target: confirmed
+    - source: confirmed
+      target: staying
+    - source: staying
+      target: done
+  required_capabilities:
+  - dialog
+  - case_patch
+  approvals:
+    human_from: 2
+    always_require: []
+  done_criteria:
+  - Бронь подтверждена хозяином, даты и тариф зафиксированы в деле.
+  - Выселение прошло со сверкой счёта, залог возвращён или удержан по правилам.
+  - 'Прямо сказано, чего пак не делает: оплату брони не проводит сам.'
+- id: hotels.change
+  version: 1
+  title: Изменение или отмена брони
+  kind: task
+  intake:
+  - key: wish
+    title: Что поменять
+    kind: text
+    required: true
+  - key: note
+    title: Причина
+    kind: text
+  workflow:
+    initial_state: intake
+    states:
+    - intake
+    - agreed
+    - done
+    terminal_states:
+    - done
+    transitions:
+    - source: intake
+      target: agreed
+    - source: agreed
+      target: done
+  required_capabilities:
+  - dialog
+  - case_patch
+  approvals:
+    human_from: 2
+    always_require: []
+  done_criteria:
+  - Правила объекта и размер штрафов названы по делу, а не по памяти.
+  - Новый вариант или отмена согласованы обеими сторонами.
+  - Перерасчёт или возврат зафиксирован в деле со сроками.
+platform_abilities:
+- key: booking_calendar
+  title: Держать брони и правила объекта в деле
+  mode: own_corpus
+  note: 'Ведомость живёт в самом деле: её видят участники дела, правки входят в журнал.'
+- key: charge_card
+  title: Списать оплату брони самому
+  mode: not_built
+  note: 'Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость
+    и напоминает о шаге.'
+practice:
+  kinds:
+  - id: hosting
+    title: Кабинет принимающей стороны
+    scope: personal
+    agent: innkeep
+    professional_role: host
+    client_role: guest
+    reference_corpora: []
+agents:
+- id: innkeep
+  title: Помощник принимающей стороны
+  model: mimo-v2.5
+  label: hotels_innkeep
+  side: need_help
+  min_assurance: 2
+  match_priority: 50
+  capabilities:
+  - dialog
+  - case_patch
+  sensitivity_clearance:
+  - normal
+  - pii
+  purpose: 'Ведёшь дело о проживании вместе с гостиницей, хозяином или гостем: уточняешь даты, гостей
+    и пожелания; предлагаешь следующий шаг — подбор и подтверждение брони, заезд, изменения по правилам
+    объекта, выселение со сверкой счёта. Правила и штрафы называешь по делу. Не хватает данных — говоришь,
+    каких именно.'
+  never:
+  - 'не списываешь оплату и залог: расчёты идут мимо площадки'
+  - не называешь правила и штрафы не из дела, а по памяти
+  - не меняешь бронь без согласия обеих сторон

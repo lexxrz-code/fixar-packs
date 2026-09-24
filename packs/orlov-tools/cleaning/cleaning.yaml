@@ -1,0 +1,268 @@
+# orlov-tools/cleaning — Клининг и уборка.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ: коннекторов нет,
+# своих источников нет, личные сведения клиентов автору пака не нужны.
+
+id: cleaning
+title: Клининг и уборка
+version: 1
+description: 'Пак для клининговых служб и частных клинеров: поддерживающие и
+
+  генеральные уборки, уборка после ремонта, мытьё окон и химчистка
+
+  мебели на дому. Сущности — «заказ», «объект» и «бригада» с формами:
+
+  тип уборки, адрес и площадь, комнаты и санузлы, дата, число клинеров,
+
+  оборудование и химия. Сделки — «поддерживающая уборка», «генеральная
+
+  уборка» и «уборка после ремонта» с этапами от заявки и расчёта до
+
+  приёмки по чек-листу и оплаты. Документы: договор, смета, чек-лист
+
+  приёмки, акт выполненных работ. Смена ролей: исполнитель — клинер
+
+  или клининговая служба, заказчик — человек или компания; служба,
+
+  привлекая частного клинера, сама становится заказчиком. Ремонт ведёт
+
+  соседнее направление «ремонт», домашнее хозяйство — «домашнее
+
+  хозяйство»; здесь профессиональная уборка помещений.'
+party_roles:
+- role: cleaner
+  title: Клинер
+  likely_user: true
+  reciprocal: client
+- role: service
+  title: Клининговая служба
+  likely_user: true
+  reciprocal: client
+- role: client
+  title: Заказчик
+  likely_user: true
+  reciprocal: cleaner
+entity_types:
+- type: order
+  title: Заказ
+  plural: Заказы
+  sensitivity: normal
+  fields:
+  - key: kind
+    title: Тип уборки
+    kind: enum
+    required: true
+    options:
+    - поддерживающая
+    - генеральная
+    - после ремонта
+    - окна
+    - химчистка мебели
+  - key: date
+    title: Дата
+    kind: date
+    required: true
+  - key: address
+    title: Адрес
+    kind: text
+    required: true
+  - key: area
+    title: Площадь
+    kind: number
+    required: false
+  - key: price
+    title: Стоимость
+    kind: money
+    required: false
+- type: object
+  title: Объект
+  plural: Объекты
+  sensitivity: normal
+  fields:
+  - key: kind
+    title: Тип
+    kind: enum
+    required: true
+    options:
+    - квартира
+    - дом
+    - офис
+    - помещение
+  - key: rooms
+    title: Комнат
+    kind: number
+    required: false
+  - key: baths
+    title: Санузлов
+    kind: number
+    required: false
+  - key: pets
+    title: Есть животные
+    kind: bool
+    required: false
+- type: crew
+  title: Бригада
+  plural: Бригадаы
+  sensitivity: normal
+  fields:
+  - key: cleaners
+    title: Клинеров
+    kind: number
+    required: true
+  - key: hours
+    title: Часов на объекте
+    kind: number
+    required: false
+  - key: supplies
+    title: Свои химия и инвентарь
+    kind: bool
+    required: false
+deal_kinds:
+- kind: standard
+  title: Поддерживающая уборка
+  stages:
+  - заявка
+  - расчёт
+  - уборка
+  - приёмка по чек-листу
+  - оплата
+- kind: general
+  title: Генеральная уборка
+  stages:
+  - заявка
+  - осмотр и оценка
+  - смета и договор
+  - уборка
+  - приёмка по чек-листу
+  - оплата
+- kind: after_repair
+  title: Уборка после ремонта
+  stages:
+  - заявка
+  - оценка объёма
+  - смета и договор
+  - уборка с техникой
+  - приёмка по чек-листу
+  - оплата
+document_kinds:
+- договор на уборку
+- смета услуг
+- чек-лист приёмки
+- акт выполненных работ
+case_templates:
+- id: cleaning.general
+  version: 1
+  title: Генеральная уборка
+  kind: task
+  intake:
+  - key: address
+    title: Адрес
+    kind: text
+    required: true
+  - key: area
+    title: Площадь
+    kind: number
+  - key: wish
+    title: Что важно отмыть в первую очередь
+    kind: text
+  workflow:
+    initial_state: intake
+    states:
+    - intake
+    - cleaning
+    - done
+    terminal_states:
+    - done
+    transitions:
+    - source: intake
+      target: cleaning
+    - source: cleaning
+      target: done
+  required_capabilities:
+  - dialog
+  - case_patch
+  approvals:
+    human_from: 2
+    always_require: []
+  done_criteria:
+  - Уборка проведена, чек-лист приёмки заполнен и подписан заказчиком.
+  - Замечания из чек-листа устранены или названы отдельно.
+  - 'Прямо сказано, чего пак не делает: клинеров на смену не нанимает сам.'
+- id: cleaning.regular
+  version: 1
+  title: Поддерживающая уборка
+  kind: task
+  intake:
+  - key: address
+    title: Адрес
+    kind: text
+    required: true
+  - key: date
+    title: Дата
+    kind: date
+  - key: wish
+    title: Что входит каждый раз
+    kind: text
+  workflow:
+    initial_state: intake
+    states:
+    - intake
+    - cleaning
+    - done
+    terminal_states:
+    - done
+    transitions:
+    - source: intake
+      target: cleaning
+    - source: cleaning
+      target: done
+  required_capabilities:
+  - dialog
+  - case_patch
+  approvals:
+    human_from: 2
+    always_require: []
+  done_criteria:
+  - Уборка прошла в согласованное время, приёмка отмечена в деле.
+  - Постоянный состав работ зафиксирован для следующих визитов.
+  - Оплата зафиксирована, задолженностей нет или они названы.
+platform_abilities:
+- key: checklist_sheet
+  title: Держать чек-лист приёмки в деле
+  mode: own_corpus
+  note: 'Ведомость живёт в самом деле: её видят участники дела, правки входят в журнал.'
+- key: staff_hire
+  title: Нанять клинеров на смену самому
+  mode: not_built
+  note: 'Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость
+    и напоминает о шаге.'
+practice:
+  kinds:
+  - id: cleaning_pro
+    title: Кабинет клинера
+    scope: personal
+    agent: tidy
+    professional_role: cleaner
+    client_role: client
+    reference_corpora: []
+agents:
+- id: tidy
+  title: Помощник по уборке
+  model: mimo-v2.5
+  label: cleaning_tidy
+  side: need_help
+  min_assurance: 2
+  match_priority: 50
+  capabilities:
+  - dialog
+  - case_patch
+  sensitivity_clearance:
+  - normal
+  purpose: 'Ведёшь дело об уборке вместе с клинером, службой или заказчиком: уточняешь тип уборки, адрес,
+    площадь и что важно в первую очередь; предлагаешь следующий шаг — расчёт, договор, уборка, приёмка
+    по чек-листу, оплата. Постоянный состав работ держишь для повторных визитов. Отвечаешь по делу. Не
+    хватает данных — говоришь, каких.'
+  never:
+  - 'не нанимаешь клинеров сам: подбор и найм остаются за человеком'
+  - не проводишь оплату уборки и не обещаешь провести её сам
+  - 'не называешь цену от себя: смету считает клинер или служба'

@@ -1,0 +1,38 @@
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: tutoring
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Репетиторство и предметные занятия"
+  summary: >-
+    Ведёт дело об учёбе с наставником: занятие, курс подготовки к экзамену, абонемент. Держит журнал занятий, домашние задания и прогресс по плану. Оценки не ставит, оплату не проводит, записи за ученика не делает — это остаётся за людьми.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [tutor, lesson, exam, mentoring, student, course]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [tutoring]
+    agents: [mentor]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal, pii]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/

@@ -1,0 +1,282 @@
+# orlov-tools/tutoring — Репетиторство и предметные занятия.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ: коннекторов нет,
+# своих источников нет, личные сведения клиентов автору пака не нужны.
+
+id: tutoring
+title: Репетиторство и предметные занятия
+version: 1
+description: 'Пак для репетиторов и небольших учебных студий: разовые занятия,
+
+  подготовка к экзаменам, курсы по предмету, абонементы на учебный год.
+
+  Сущности — «ученик», «занятие» и «курс» с формами: предмет и класс,
+
+  цель, дата и длительность, число занятий, цена и расписание. Сделки —
+
+  «разовое занятие», «подготовка к экзамену» и «абонемент» с этапами
+
+  от заявки и входной диагностики до занятий, контроля прогресса
+
+  и оплаты. Документы: договор, план подготовки, журнал занятий
+
+  и успеваемости. Смена ролей: исполнитель — репетитор или студия,
+
+  заказчик — ученик или родитель; репетитор, арендуя кабинет студии,
+
+  сам становится заказчиком. Общую программу школы ведёт направление
+
+  «образование»; здесь именно предметные занятия с наставником —
+
+  от арифметики до подготовки к поступлению.'
+party_roles:
+- role: tutor
+  title: Репетитор
+  likely_user: true
+  reciprocal: client
+- role: client
+  title: Ученик или родитель
+  likely_user: true
+  reciprocal: tutor
+entity_types:
+- type: student
+  title: Ученик
+  plural: Ученикы
+  sensitivity: pii
+  fields:
+  - key: grade
+    title: Класс или курс
+    kind: text
+    required: true
+  - key: subject
+    title: Предмет
+    kind: enum
+    required: true
+    options:
+    - математика
+    - русский язык
+    - литература
+    - физика
+    - химия
+    - биология
+    - история
+    - английский язык
+    - информатика
+  - key: goal
+    title: Цель
+    kind: text
+    required: false
+- type: lesson
+  title: Занятие
+  plural: Занятиеы
+  sensitivity: normal
+  fields:
+  - key: date
+    title: Дата и время
+    kind: date
+    required: true
+  - key: minutes
+    title: Длительность
+    kind: number
+    required: false
+    unit: мин
+  - key: format
+    title: Формат
+    kind: enum
+    required: false
+    options:
+    - у репетитора
+    - у ученика
+    - онлайн
+  - key: price
+    title: Стоимость
+    kind: money
+    required: false
+- type: course
+  title: Курс
+  plural: Курсы
+  sensitivity: normal
+  fields:
+  - key: title
+    title: Название
+    kind: text
+    required: true
+  - key: sessions
+    title: Занятий всего
+    kind: number
+    required: false
+  - key: weeks
+    title: Длительность
+    kind: number
+    required: false
+    unit: нед
+  - key: exam
+    title: Под какой экзамен
+    kind: text
+    required: false
+deal_kinds:
+- kind: single_lesson
+  title: Разовое занятие
+  stages:
+  - заявка
+  - согласование времени
+  - занятие
+  - домашнее задание
+  - оплата
+- kind: exam_prep
+  title: Подготовка к экзамену
+  stages:
+  - заявка
+  - входная диагностика
+  - план подготовки и договор
+  - занятия по плану
+  - пробный экзамен
+  - итоги и оплата
+- kind: pass_course
+  title: Абонемент на занятия
+  stages:
+  - заявка
+  - выбор тарифа
+  - оплата
+  - занятия по абонементу
+  - продление или закрытие
+document_kinds:
+- договор на обучение
+- план подготовки
+- журнал занятий
+- согласие на обработку данных ученика
+case_templates:
+- id: tutoring.lesson
+  version: 1
+  title: Разовое занятие
+  kind: task
+  intake:
+  - key: subject
+    title: Предмет
+    kind: enum
+    options:
+    - математика
+    - русский язык
+    - литература
+    - физика
+    - химия
+    - биология
+    - история
+    - английский язык
+    - информатика
+  - key: date
+    title: Дата и время
+    kind: date
+  - key: wish
+    title: Какие темы разобрать
+    kind: text
+  workflow:
+    initial_state: intake
+    states:
+    - intake
+    - lesson
+    - done
+    terminal_states:
+    - done
+    transitions:
+    - source: intake
+      target: lesson
+    - source: lesson
+      target: done
+  required_capabilities:
+  - dialog
+  - case_patch
+  approvals:
+    human_from: 2
+    always_require: []
+  done_criteria:
+  - Занятие проведено, темы и домашнее задание записаны в журнал.
+  - Следующее занятие согласовано или назван шаг его согласования.
+  - 'Прямо сказано, чего пак не делает: оплату не проводит и оценки не ставит.'
+- id: tutoring.exam
+  version: 1
+  title: Подготовка к экзамену
+  kind: task
+  intake:
+  - key: subject
+    title: Предмет
+    kind: enum
+    options:
+    - математика
+    - русский язык
+    - литература
+    - физика
+    - химия
+    - биология
+    - история
+    - английский язык
+    - информатика
+  - key: exam
+    title: Какой экзамен
+    kind: text
+  - key: wish
+    title: Сроки и целевой балл
+    kind: text
+  workflow:
+    initial_state: intake
+    states:
+    - intake
+    - plan
+    - done
+    terminal_states:
+    - done
+    transitions:
+    - source: intake
+      target: plan
+    - source: plan
+      target: done
+  required_capabilities:
+  - dialog
+  - case_patch
+  approvals:
+    human_from: 2
+    always_require: []
+  done_criteria:
+  - Входная диагностика проведена, план подготовки согласован и лежит в деле.
+  - Прогресс по плану отмечается после каждого занятия.
+  - Пробный экзамен разобран, слабые темы названы.
+platform_abilities:
+- key: progress_log
+  title: Вести журнал занятий и прогресса
+  mode: own_corpus
+  note: 'Ведомость живёт в самом деле: её видят участники дела, правки входят в журнал.'
+- key: studio_schedule
+  title: Записать ученика в расписание студии
+  mode: not_built
+  note: 'Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость
+    и напоминает о шаге.'
+practice:
+  kinds:
+  - id: tutoring_pro
+    title: Кабинет репетитора
+    scope: personal
+    agent: mentor
+    professional_role: tutor
+    client_role: client
+    reference_corpora: []
+agents:
+- id: mentor
+  title: Помощник репетитора
+  model: mimo-v2.5
+  label: tutoring_mentor
+  side: need_help
+  min_assurance: 2
+  match_priority: 50
+  capabilities:
+  - dialog
+  - case_patch
+  sensitivity_clearance:
+  - normal
+  - pii
+  purpose: 'Ведёшь дело об учёбе вместе с репетитором, учеником или родителем: уточняешь предмет, цель
+    и сроки; предлагаешь следующий шаг — диагностика, план, занятие с журналом, пробный экзамен, продление
+    абонемента. Отвечаешь по журналу и делу. Не хватает данных — говоришь, каких именно, а не придумываешь.'
+  never:
+  - не ставишь запись за ученика и не переносишь занятие без его слова
+  - не проводишь оплату занятий и не обещаешь провести её сам
+  - 'не ставишь оценок и не решаешь за учителя: журнал только фиксирует'

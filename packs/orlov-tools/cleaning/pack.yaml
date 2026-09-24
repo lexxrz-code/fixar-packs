@@ -1,0 +1,38 @@
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: cleaning
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Клининг и уборка"
+  summary: >-
+    Ведёт дело об уборке от заявки до приёмки: расчёт, договор, уборка, чек-лист приёмки и оплата. Держит постоянный состав работ для повторных визитов и замечания по приёмке. Клинеров сам не нанимает и оплату не проводит — это остаётся за людьми.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [cleaning, cleanup, maid, housekeeping, tidy]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [cleaning]
+    agents: [tidy]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/

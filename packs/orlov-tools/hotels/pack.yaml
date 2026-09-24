@@ -1,0 +1,38 @@
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: hotels
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Проживание и брони"
+  summary: >-
+    Ведёт дело о проживании от брони до выселения: подтверждение, заезд, сверка счёта, залог, изменения и отмена по правилам объекта. Держит брони и правила в деле. Оплату брони сам не проводит — деньги ходят мимо площадки.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [hotel, booking, stay, guest, apartment, hostel, inn]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [hotels]
+    agents: [innkeep]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal, pii]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/
