@@ -1,0 +1,44 @@
+# orlov-tools/fitness — Фитнес и персональные тренировки.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ ИЗ ВОЗМОЖНЫХ: коннекторов нет (network:egress
+# не нужен), своих источников у направления нет (source:query не просится),
+# личные сведения клиентов автору пака незачем видеть (traces не просим).
+
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: fitness
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Фитнес и персональные тренировки"
+  summary: >-
+    Ведёт дело о тренировках от заявки до результата: разовое занятие, программа на месяц с замерами, абонемент студии со сроком и числом визитов. Напоминает о занятиях и контрольных замерах. Запись за клиента не ставит и оплату не проводит — это остаётся за людьми.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [fitness, workout, personal, training, gym, program, pass]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [fitness]
+    agents: [coach]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal, pii, financial]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/

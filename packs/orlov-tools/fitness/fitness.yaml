@@ -1,0 +1,223 @@
+id: fitness
+title: Фитнес и персональные тренировки
+version: 1
+description: |-
+  Пак для тренеров и студий, ведущих клиентов по тренировкам: персональный
+  и парный тренинг, онлайн-ведение, программы на месяц, абонементы студии.
+  Сущности — «тренировка», «программа» и «абонемент» с формами: направление,
+  дата и длительность, нагрузка, число занятий, цена и срок действия.
+  Сделки — «разовая тренировка», «программа на месяц» и «продажа
+  абонемента» с этапами от заявки и замеров до занятия, обратной связи
+  и оплаты. Документы: договор, план тренировок, согласие на нагрузку,
+  журнал замеров. Смена ролей: исполнитель — тренер или студия,
+  заказчик — клиент; тренер, арендуя зал студии, сам становится
+  заказчиком аренды. Диагнозы, реабилитацию после травм и лечебную
+  физкультуру ведёт соседнее направление «медицина» — здесь только
+  фитнес и спортивные нагрузки для здоровых занятий.
+
+entity_types:
+  - type: workout
+    title: Тренировка
+    sensitivity: normal
+    fields:
+      - key: kind
+        title: Направление
+        kind: enum
+        required: true
+        options:
+          - персональная
+          - парная
+          - онлайн
+          - функциональная
+          - силовая
+          - кардио
+          - йога
+          - растяжка
+      - key: date
+        title: Дата и время
+        kind: date
+        required: true
+      - key: minutes
+        title: Длительность
+        kind: number
+        required: false
+        unit: мин
+      - key: place
+        title: Место
+        kind: text
+        required: false
+      - key: price
+        title: Цена
+        kind: money
+        required: false
+  - type: program
+    title: Программа
+    sensitivity: normal
+    fields:
+      - key: title
+        title: Название
+        kind: text
+        required: true
+      - key: sessions
+        title: Занятий в неделю
+        kind: number
+        required: false
+      - key: weeks
+        title: Длительность
+        kind: number
+        required: false
+        unit: нед
+      - key: goal
+        title: Цель
+        kind: text
+        required: false
+  - type: pass
+    title: Абонемент
+    sensitivity: normal
+    fields:
+      - key: visits
+        title: Число визитов
+        kind: number
+        required: true
+      - key: due
+        title: Действует до
+        kind: date
+        required: true
+      - key: price
+        title: Цена
+        kind: money
+        required: false
+      - key: used
+        title: Визитов израсходовано
+        kind: number
+        required: false
+
+party_roles:
+  - {role: trainer, title: Тренер, likely_user: true, reciprocal: client}
+  - {role: studio, title: Студия, likely_user: true, reciprocal: client}
+  - {role: client, title: Клиент, likely_user: true, reciprocal: trainer}
+
+deal_kinds:
+  - kind: single_session
+    title: Разовая тренировка
+    stages:
+      - заявка
+      - согласование времени
+      - тренировка
+      - обратная связь
+      - оплата
+  - kind: monthly_program
+    title: Программа на месяц
+    stages:
+      - заявка
+      - консультация и замеры
+      - программа и договор
+      - тренировки по плану
+      - контрольные замеры
+      - итоги и оплата
+  - kind: pass_sale
+    title: Продажа абонемента
+    stages:
+      - заявка
+      - выбор тарифа
+      - оплата
+      - визиты по абонементу
+      - продление или закрытие
+
+document_kinds:
+  - договор оказания услуг
+  - план тренировок
+  - согласие на физическую нагрузку
+  - журнал замеров
+  - расписание занятий
+
+
+case_templates:
+  - id: fitness.session
+    version: 1
+    title: Разовое занятие
+    kind: task
+    intake:
+      - {key: kind, title: Направление, kind: enum,
+         options: [персональная, парная, онлайн, функциональная, силовая, кардио, йога, растяжка]}
+      - {key: date, title: Дата и время, kind: date}
+      - {key: wish, title: На чём сконцентрироваться, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, session, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: session}
+        - {source: session, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Занятие проведено, самочувствие клиента после нагрузки отмечено.
+      - Обратная связь и следующий шаг записаны в деле.
+      - "Прямо сказано, чего пак не делает: запись за клиента не ставит, оплату не проводит."
+  - id: fitness.month
+    version: 1
+    title: Программа на месяц
+    kind: task
+    intake:
+      - {key: goal, title: Цель, kind: text, required: true}
+      - {key: sessions, title: Сколько раз в неделю готов заниматья, kind: number}
+    workflow:
+      initial_state: intake
+      states: [intake, plan, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: plan}
+        - {source: plan, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Программа согласована и лежит в деле, замеры стартовые записаны.
+      - Пропуски и переносы тренировок отмечены, план скорректирован.
+      - Итоги месяца подведены по контрольным замерам.
+
+practice:
+  kinds:
+    - id: coaching
+      title: Кабинет тренера
+      scope: personal
+      agent: coach
+      professional_role: trainer
+      client_role: client
+      reference_corpora: []
+
+platform_abilities:
+  - key: measure_log
+    title: Вести журнал замеров и прогресса
+    mode: own_corpus
+    note: >
+      Ведомость живёт в самом деле: её видят участники дела, правки входят
+      в журнал, напоминания приходят заранее.
+
+  - key: gym_booking
+    title: Записать клиента в расписание студии
+    mode: not_built
+    note: >
+      Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость и напоминает о шаге.
+
+agents:
+  - id: coach
+    title: Помощник тренера
+    model: mimo-v2.5
+    label: fitness_coach
+    side: need_help
+    min_assurance: 2
+    match_priority: 50
+    capabilities: [dialog, case_patch]
+    sensitivity_clearance: [normal, pii, financial]
+    purpose: >
+      Ведёшь дело о тренировках вместе с тренером или клиентом: уточняешь направление, время, цель и самочувствие; предлагаешь следующий шаг — согласование времени, занятие с отметкой нагрузки, замеры, продление абонемента. Отвечаешь по тому, что принесли в дело: плану, журналу замеров, словам сторон. Не хватает данных — говоришь, каких именно.
+    never:
+      - "не ставишь запись за клиента и не переносишь занятие без его слова"
+      - "не проводишь оплату и не обещаешь провести её сам"
+      - "не даёшь медицинских назначений: диагнозы и реабилитацию ведёт медицина"
+      - "не обещаешь результат тренировок: он зависит от человека, а не от плана"

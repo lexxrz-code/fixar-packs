@@ -1,0 +1,226 @@
+id: catering
+title: Кейтеринг и банкеты
+version: 1
+description: |-
+  Пак для кейтеринговых служб и поваров, ведущих выездное питание:
+  банкеты под ключ, фуршеты, выездные бары и доставка блюд на
+  мероприятия. Сущности — «заказ», «меню» и «смена» с формами: формат,
+  дата и площадка, число гостей, состав меню и расчёт на человека,
+  официанты и бармены, оборудование. Сделки — «банкет под ключ»,
+  «фуршет» и «доставка блюд на мероприятие» с этапами от заявки
+  и дегустации до сервировки, разбор площадки, акта и оплаты.
+  Документы: договор, меню-смета, счёт, акт выполненных работ.
+  Смена ролей: исполнитель — кейтеринг или повар, заказчик — человек
+  или компания; кейтеринг, нанимая официантов и арендуя оборудование,
+  сам становится заказчиком. Организацию мероприятия целиком ведёт
+  соседнее направление «мероприятия»; здесь только еда, напитки
+  и сервис на площадке.
+
+entity_types:
+  - type: order
+    title: Заказ
+    sensitivity: normal
+    fields:
+      - key: format
+        title: Формат
+        kind: enum
+        required: true
+        options:
+          - банкет
+          - фуршет
+          - выездной бар
+          - доставка блюд
+          - кофе-брейк
+      - key: date
+        title: Дата
+        kind: date
+        required: true
+      - key: venue
+        title: Площадка
+        kind: text
+        required: true
+      - key: guests
+        title: Число гостей
+        kind: number
+        required: false
+      - key: per_person
+        title: Расчёт на человека
+        kind: money
+        required: false
+  - type: menu
+    title: Меню
+    sensitivity: normal
+    fields:
+      - key: title
+        title: Название набора
+        kind: text
+        required: true
+      - key: items
+        title: Состав
+        kind: text
+        required: false
+      - key: per_person
+        title: Цена на человека
+        kind: money
+        required: false
+      - key: tasting
+        title: Дегустация проведена
+        kind: bool
+        required: false
+  - type: shift
+    title: Смена персонала
+    sensitivity: normal
+    fields:
+      - key: role
+        title: Кто нужен
+        kind: enum
+        required: true
+        options:
+          - официант
+          - бармен
+          - повар
+          - шеф на площадке
+      - key: people
+        title: Человек
+        kind: number
+        required: true
+      - key: hours
+        title: Часов смена
+        kind: number
+        required: false
+      - key: rate
+        title: Ставка
+        kind: money
+        required: false
+
+party_roles:
+  - {role: caterer, title: Кейтеринг, likely_user: true, reciprocal: client}
+  - {role: client, title: Заказчик, likely_user: true, reciprocal: caterer}
+
+deal_kinds:
+  - kind: banquet
+    title: Банкет под ключ
+    stages:
+      - заявка
+      - меню и дегустация
+      - смета и договор
+      - закупка и приготовление
+      - сервировка и обслуживание
+      - разбор площадки
+      - акт и оплата
+  - kind: buffet
+    title: Фуршет
+    stages:
+      - заявка
+      - меню и счёт
+      - договор
+      - подача на площадке
+      - уборка
+      - акт и оплата
+  - kind: delivery
+    title: Доставка блюд на мероприятие
+    stages:
+      - заявка
+      - меню и счёт
+      - приготовление
+      - доставка
+      - приёмка и оплата
+
+document_kinds:
+  - договор на кейтеринг
+  - меню-смета
+  - счёт на оплату
+  - акт выполненных работ
+  - лист расстановки на площадке
+
+
+case_templates:
+  - id: catering.banquet
+    version: 1
+    title: Банкет под ключ
+    kind: task
+    intake:
+      - {key: date, title: Дата, kind: date, required: true}
+      - {key: guests, title: Число гостей, kind: number}
+      - {key: wish, title: Пожелания к меню, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, tasting, serving, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: tasting}
+        - {source: tasting, target: serving}
+        - {source: serving, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Меню согласовано на дегустации и зафиксировано в деле.
+      - Сервис прошёл по таймингу, разбор площадки отмечен.
+      - Акт выполненных работ подписан, расхождение со сметой названо, если есть.
+  - id: catering.delivery
+    version: 1
+    title: Доставка блюд на мероприятие
+    kind: task
+    intake:
+      - {key: date, title: Дата и время, kind: date, required: true}
+      - {key: venue, title: Адрес площадки, kind: text}
+      - {key: wish, title: Что повезём, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, cooking, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: cooking}
+        - {source: cooking, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Блюда доставлены вовремя, приёмка по счёту проведена.
+      - Отметки о таре и возврате оборудования сделаны, если оборудование есть.
+      - Оплата зафиксирована, задолженностей нет или они названы.
+
+practice:
+  kinds:
+    - id: cateringing
+      title: Кабинет кейтеринга
+      scope: personal
+      agent: cook
+      professional_role: caterer
+      client_role: client
+      reference_corpora: []
+
+platform_abilities:
+  - key: menu_sheet
+    title: Держать меню-смету с расчётом на человека
+    mode: own_corpus
+    note: >
+      Ведомость живёт в самом деле: её видят участники дела, правки входят
+      в журнал, напоминания приходят заранее.
+
+  - key: venue_rent
+    title: Арендовать оборудование и нанять официантов самому
+    mode: not_built
+    note: >
+      Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость и напоминает о шаге.
+
+agents:
+  - id: cook
+    title: Помощник кейтеринга
+    model: mimo-v2.5
+    label: catering_cook
+    side: need_help
+    min_assurance: 2
+    match_priority: 50
+    capabilities: [dialog, case_patch]
+    sensitivity_clearance: [normal, pii, financial]
+    purpose: >
+      Ведёшь дело о питании на мероприятии вместе с кейтерингом или заказчиком: уточняешь формат, дату, площадку и число гостей, пожелания и ограничения в еде; предлагаешь следующий шаг — меню и дегустация, смета и договор, сервировка и обслуживание, разбор площадки, акт. Отвечаешь по тому, что принесли в дело. Не хватает данных — говоришь, каких именно.
+    never:
+      - "не нанимаешь официантов и не арендуешь оборудование сам: это решает кейтеринг"
+      - "не проводишь оплату банкета и не обещаешь провести её сам"
+      - "не называешь цену меню от себя: смету считает кейтеринг"
+      - "не меняешь согласованное меню без подтверждения заказчика"

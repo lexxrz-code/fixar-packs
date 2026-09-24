@@ -1,0 +1,44 @@
+# orlov-tools/moving — Переезды и грузоперевозки.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ ИЗ ВОЗМОЖНЫХ: коннекторов нет (network:egress
+# не нужен), своих источников у направления нет (source:query не просится),
+# личные сведения клиентов автору пака незачем видеть (traces не просим).
+
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: moving
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Переезды и грузоперевозки"
+  summary: >-
+    Ведёт дело о переезде или перевозке груза от заявки до акта: оценка объёма, смета и договор, упаковка, перевозка, расстановка и приёмка. Держит упаковочные листы и хрупкие позиции. Машину и грузчиков сам не нанимает и оплату не проводит — это за людьми.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [moving, cargo, truck, relocation, loaders, freight]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [moving]
+    agents: [mover]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal, pii, financial]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/

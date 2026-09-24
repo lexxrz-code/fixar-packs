@@ -1,0 +1,225 @@
+id: moving
+title: Переезды и грузоперевозки
+version: 1
+description: |-
+  Пак для грузоперевозчиков и бригад, ведущих переезды под ключ: квартирные
+  и офисные переезды, перевозка грузов по городу и между городами.
+  Сущности — «переезд», «груз» и «бригада» с формами: адреса погрузки
+  и выгрузки, дата, этаж и лифт, объём, вес, хрупкость, число грузчиков
+  и марка машины. Сделки — «квартирный переезд», «офисный переезд»
+  и «перевозка груза» с этапами от заявки и сметы до расстановки,
+  приёмки и оплаты. Документы: договор, смета, упаковочный лист,
+  акт приёма-передачи груза. Смена ролей: исполнитель — перевозчик
+  или бригада, заказчик — человек или компания; субаренда машины
+  у другой бригады делает перевозчика заказчиком. Мелкую доставку
+  одной посылки ведёт «домашнее хозяйство», перевозку техники тралом —
+  «спецтехника»; здесь именно переезды и грузовые перевозки.
+
+entity_types:
+  - type: move
+    title: Переезд
+    sensitivity: normal
+    fields:
+      - key: kind
+        title: Тип
+        kind: enum
+        required: true
+        options:
+          - квартирный
+          - офисный
+          - дачный
+          - межгород
+      - key: date
+        title: Дата
+        kind: date
+        required: true
+      - key: from
+        title: Откуда
+        kind: text
+        required: true
+      - key: to
+        title: Куда
+        kind: text
+        required: true
+      - key: floors
+        title: Этаж и лифт
+        kind: text
+        required: false
+      - key: budget
+        title: Смета
+        kind: money
+        required: false
+  - type: cargo
+    title: Груз
+    sensitivity: normal
+    fields:
+      - key: title
+        title: Что везём
+        kind: text
+        required: true
+      - key: volume
+        title: Объём
+        kind: number
+        required: false
+      - key: weight
+        title: Вес
+        kind: number
+        required: false
+      - key: fragile
+        title: Хрупкое
+        kind: bool
+        required: false
+      - key: packed
+        title: Упаковано
+        kind: bool
+        required: false
+  - type: crew
+    title: Бригада
+    sensitivity: normal
+    fields:
+      - key: workers
+        title: Грузчиков
+        kind: number
+        required: true
+      - key: truck
+        title: Машина
+        kind: text
+        required: false
+      - key: foreman
+        title: Бригадир
+        kind: text
+        required: false
+
+party_roles:
+  - {role: carrier, title: Перевозчик, likely_user: true, reciprocal: client}
+  - {role: client, title: Заказчик, likely_user: true, reciprocal: carrier}
+
+deal_kinds:
+  - kind: flat_move
+    title: Квартирный переезд
+    stages:
+      - заявка
+      - оценка объёма
+      - смета и договор
+      - упаковка
+      - перевозка
+      - расстановка
+      - приёмка и оплата
+  - kind: office_move
+    title: Офисный переезд
+    stages:
+      - заявка
+      - план переезда
+      - смета и договор
+      - маркировка и упаковка
+      - перевозка по графику
+      - приёмка и оплата
+  - kind: cargo_ride
+    title: Перевозка груза
+    stages:
+      - заявка
+      - расчёт
+      - договор
+      - погрузка
+      - доставка
+      - выгрузка и оплата
+
+document_kinds:
+  - договор на перевозку
+  - смета переезда
+  - упаковочный лист
+  - акт приёма-передачи груза
+  - акт выполненных работ
+
+
+case_templates:
+  - id: moving.flat
+    version: 1
+    title: Квартирный переезд
+    kind: task
+    intake:
+      - {key: from, title: Откуда, kind: text, required: true}
+      - {key: to, title: Куда, kind: text, required: true}
+      - {key: date, title: Дата, kind: date}
+      - {key: wish, title: Что перевезти, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, packing, moving, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: packing}
+        - {source: packing, target: moving}
+        - {source: moving, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Груз доставлен, расстановка принята заказчиком и отмечена в деле.
+      - Акт приёма-передачи груза заполнен, повреждения названы, если есть.
+      - "Прямо сказано, чего пак не делает: машину и грузчиков не нанимает сам."
+  - id: moving.cargo
+    version: 1
+    title: Перевозка груза
+    kind: task
+    intake:
+      - {key: from, title: Забрать где, kind: text, required: true}
+      - {key: to, title: Доставить куда, kind: text, required: true}
+      - {key: wish, title: Что за груз, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, loading, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: loading}
+        - {source: loading, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Груз доставлен и принят по акту приёма-передачи.
+      - Смета сходится с договором, допрасходы согласованы отдельно.
+      - Упаковочный лист заполнен, расхождений нет или они названы.
+
+practice:
+  kinds:
+    - id: hauling
+      title: Кабинет перевозчика
+      scope: personal
+      agent: mover
+      professional_role: carrier
+      client_role: client
+      reference_corpora: []
+
+platform_abilities:
+  - key: inventory_sheet
+    title: Держать опись вещей и упаковочные листы
+    mode: own_corpus
+    note: >
+      Ведомость живёт в самом деле: её видят участники дела, правки входят
+      в журнал, напоминания приходят заранее.
+
+  - key: crew_hire
+    title: Нанять грузчиков или машину самому
+    mode: not_built
+    note: >
+      Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость и напоминает о шаге.
+
+agents:
+  - id: mover
+    title: Помощник по переезду
+    model: mimo-v2.5
+    label: moving_mover
+    side: need_help
+    min_assurance: 2
+    match_priority: 50
+    capabilities: [dialog, case_patch]
+    sensitivity_clearance: [normal, pii, financial]
+    purpose: >
+      Ведёшь дело о переезде или перевозке вместе с перевозчиком или заказчиком: уточняешь адреса, дату, этажи и лифты, что перевезём и что хрупкое; предлагаешь следующий шаг по сделке — оценка, смета и договор, упаковка с описью, перевозка, расстановка, приёмка по акту. Отвечаешь по тому, что принесли в дело. Не хватает данных — говоришь, каких именно, а не придумываешь их.
+    never:
+      - "не нанимаешь машину и грузчиков сам: подбор и найм остаются за человеком"
+      - "не проводишь оплату перевозки и не обещаешь провести её сам"
+      - "не называешь цену перевозки от себя: смету считает перевозчик"
+      - "не вносишь вещи в опись со слов третьих лиц без подтверждения заказчика"

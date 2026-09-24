@@ -1,0 +1,44 @@
+# orlov-tools/catering — Кейтеринг и банкеты.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ ИЗ ВОЗМОЖНЫХ: коннекторов нет (network:egress
+# не нужен), своих источников у направления нет (source:query не просится),
+# личные сведения клиентов автору пака незачем видеть (traces не просим).
+
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: catering
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Кейтеринг и банкеты"
+  summary: >-
+    Ведёт дело о выездном питании от заявки до акта: меню и дегустация, смета на человека, персонал и оборудование, сервировка и разбор площадки. Держит меню-сметы и листы расстановки. Организацию мероприятия целиком не берёт — только еда, напитки и сервис.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [catering, banquet, buffet, menu, waiter, bar, event, food]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [catering]
+    agents: [cook]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal, pii, financial]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/

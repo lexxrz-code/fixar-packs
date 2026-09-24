@@ -1,0 +1,44 @@
+# orlov-tools/vet — Ветеринарные услуги.
+#
+# ПРОСЬБА О ПРАВАХ — НАИМЕНЬШАЯ ИЗ ВОЗМОЖНЫХ: коннекторов нет (network:egress
+# не нужен), своих источников у направления нет (source:query не просится),
+# личные сведения клиентов автору пака незачем видеть (traces не просим).
+
+apiVersion: aios.dev/v1alpha1
+kind: Pack
+
+metadata:
+  namespace: orlov-tools
+  name: vet
+  version: 1.0.0
+  publisher: pub_b0eabce7e16d
+  title: "Ветеринарные услуги"
+  summary: >-
+    Ведёт дело о приёме животного от записи до отметки в паспорте: осмотр, заключение и назначения, вакцинация с контролем срока следующей, выезд врача на дом. Держит карту животного и согласия на процедуры. Диагноз по фото не ставит и лекарства без осмотра не назначает.
+  license: MIT
+  categories: [sourcing, documents]
+  keywords: [vet, veterinarian, pet, vaccination, clinic, animal]
+
+spec:
+  compatibility:
+    min_aios: 2.1.0
+
+  components:
+    domains: [vet]
+    agents: [doctor]
+
+  requested_capabilities:
+    - traces:aggregate
+
+  reads_sensitivity: [normal, pii, medical, financial]
+
+  secrets: []
+
+  resources:
+    timeout_seconds: 30
+    memory_mb: 128
+    requests_per_minute: 12
+
+  tests:
+    fixtures: tests/
+    evals: evals/

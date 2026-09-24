@@ -17,9 +17,8 @@ description: |-
 entity_types:
   - type: visit
     title: Визит
-    capacity: true
     sensitivity: normal
-    form:
+    fields:
       - key: category
         title: Категория услуги
         kind: enum
@@ -41,7 +40,6 @@ entity_types:
         title: Дата и время
         kind: date
         required: true
-        hint: дд.мм.гггг
       - key: minutes
         title: Длительность
         kind: number
@@ -53,9 +51,8 @@ entity_types:
         required: false
   - type: service
     title: Услуга
-    capacity: false
     sensitivity: normal
-    form:
+    fields:
       - key: title
         title: Название
         kind: text
@@ -85,9 +82,8 @@ entity_types:
         required: false
   - type: certificate
     title: Подарочный сертификат
-    capacity: false
     sensitivity: normal
-    form:
+    fields:
       - key: nominal
         title: Номинал
         kind: money
@@ -96,7 +92,6 @@ entity_types:
         title: Действует до
         kind: date
         required: true
-        hint: дд.мм.гггг
       - key: holder
         title: Для кого
         kind: text
@@ -107,15 +102,9 @@ entity_types:
         required: false
 
 party_roles:
-  - role: master
-    title: Мастер
-    likely_user: true
-  - role: salon
-    title: Салон
-    likely_user: true
-  - role: client
-    title: Клиент
-    likely_user: true
+  - {role: master, title: Мастер, likely_user: true, reciprocal: client}
+  - {role: salon, title: Салон, likely_user: true, reciprocal: master}
+  - {role: client, title: Клиент, likely_user: true, reciprocal: master}
 
 deal_kinds:
   - kind: appointment
@@ -153,17 +142,6 @@ document_kinds:
   - журнал записи
   - соглашение о подарочном сертификате
 
-passages:
-  - ability: buyer_search
-    title: Подобрать предложения
-    state: сами
-    sources: 1
-  - ability: lookup
-    title: Справка о предмете
-    state: сами
-    sources: 1
-
-personal_agent_presets: []
 
 case_templates:
   - id: beauty.visit
@@ -229,9 +207,10 @@ practice:
   kinds:
     - id: mastering
       title: Кабинет мастера
+      scope: personal
+      agent: master
       professional_role: master
       client_role: client
-      client_title: Клиент
       reference_corpora: []
 
 platform_abilities:

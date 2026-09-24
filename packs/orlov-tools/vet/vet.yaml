@@ -1,0 +1,219 @@
+id: vet
+title: Ветеринарные услуги
+version: 1
+description: |-
+  Пак для ветеринарных клиник и частных врачей, ведущих приём животных:
+  записи на приём, выезды на дом, вакцинации и повторные визиты.
+  Сущности — «пациент», «приём» и «процедура» с формами: вид и кличка
+  животного, возраст и вес, дата, жалобы, назначения, препарат и срок
+  следующей вакцинации. Сделки — «приём в клинике», «выезд врача на дом»
+  и «вакцинация» с этапами от записи до отметки в паспорте и оплаты.
+  Документы: договор оказания услуг, карта животного, согласие на
+  процедуру, счёт. Смена ролей: исполнитель — клиника или врач,
+  заказчик — владелец животного; клиника, привлекая частного врача
+  на смену, становится его заказчиком. Заболевания людей ведёт
+  направление «медицина»; тяжёлые случаи, где нужен стационар или
+  операция, направление принимает и передаёт в хирургию клиники.
+
+entity_types:
+  - type: patient
+    title: Пациент
+    sensitivity: pii
+    fields:
+      - key: kind
+        title: Вид животного
+        kind: enum
+        required: true
+        options:
+          - кошка
+          - собака
+          - грызун
+          - птица
+          - экзотическое
+      - key: name
+        title: Кличка
+        kind: text
+        required: true
+      - key: age
+        title: Возраст
+        kind: text
+        required: false
+      - key: weight
+        title: Вес
+        kind: number
+        required: false
+      - key: owner
+        title: Владелец
+        kind: text
+        required: true
+  - type: visit
+    title: Приём
+    sensitivity: medical
+    fields:
+      - key: date
+        title: Дата и время
+        kind: date
+        required: true
+      - key: reason
+        title: Жалобы или причина
+        kind: text
+        required: true
+      - key: diagnosis
+        title: Заключение
+        kind: text
+        required: false
+      - key: price
+        title: Стоимость
+        kind: money
+        required: false
+  - type: procedure
+    title: Процедура
+    sensitivity: medical
+    fields:
+      - key: title
+        title: Название
+        kind: text
+        required: true
+      - key: drug
+        title: Препарат
+        kind: text
+        required: false
+      - key: next_due
+        title: Следующая дата
+        kind: date
+        required: false
+      - key: reaction
+        title: Реакция
+        kind: text
+        required: false
+
+party_roles:
+  - {role: clinic, title: Клиника, likely_user: true, reciprocal: owner}
+  - {role: doctor, title: Ветеринарный врач, likely_user: true, reciprocal: owner}
+  - {role: owner, title: Владелец животного, likely_user: true, reciprocal: clinic}
+
+deal_kinds:
+  - kind: clinic_visit
+    title: Приём в клинике
+    stages:
+      - запись
+      - осмотр и диагностика
+      - заключение и назначения
+      - повторный приём
+      - оплата
+  - kind: home_visit
+    title: Выезд врача на дом
+    stages:
+      - заявка
+      - согласование времени
+      - визит и осмотр
+      - назначения
+      - оплата
+  - kind: vaccination
+    title: Вакцинация
+    stages:
+      - запись
+      - осмотр перед прививкой
+      - прививка
+      - отметка в паспорте
+      - оплата
+
+document_kinds:
+  - договор оказания услуг
+  - карта животного
+  - согласие на процедуру
+  - счёт за услуги
+  - ветеринарный паспорт с отметками
+
+
+case_templates:
+  - id: vet.appointment
+    version: 1
+    title: Приём животного
+    kind: task
+    intake:
+      - {key: kind, title: Вид животного, kind: enum,
+         options: [кошка, собака, грызун, птица, экзотическое]}
+      - {key: name, title: Кличка, kind: text, required: true}
+      - {key: reason, title: Что беспокоит, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, exam, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: exam}
+        - {source: exam, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Приём состоялся, заключение и назначения записаны в карте животного.
+      - Дата повторного приёма названа, если назначения требуют контроля.
+      - "Прямо сказано, чего пак не делает: диагноз по фото не ставит, лекарства не выписывает без осмотра."
+  - id: vet.shot
+    version: 1
+    title: Вакцинация
+    kind: task
+    intake:
+      - {key: kind, title: Вид животного, kind: enum,
+         options: [кошка, собака, грызун, птица, экзотическое]}
+      - {key: name, title: Кличка, kind: text, required: true}
+      - {key: drug, title: Какая вакцина, kind: text}
+    workflow:
+      initial_state: intake
+      states: [intake, checkup, done]
+      terminal_states: [done]
+      transitions:
+        - {source: intake, target: checkup}
+        - {source: checkup, target: done}
+    required_capabilities: [dialog, case_patch]
+    approvals:
+      human_from: 2
+      always_require: []
+    done_criteria:
+      - Осмотр перед прививкой проведён, противопоказания исключены врачом.
+      - Отметка о вакцинации с препаратом и сроком следующей внесена в паспорт.
+      - Реакция после прививки отмечена, телефон клиники для вопросов назван.
+
+practice:
+  kinds:
+    - id: practice
+      title: Кабинет клиники
+      scope: personal
+      agent: doctor
+      professional_role: doctor
+      client_role: owner
+      reference_corpora: []
+
+platform_abilities:
+  - key: patient_card
+    title: Вести карту животного и прививки
+    mode: own_corpus
+    note: >
+      Ведомость живёт в самом деле: её видят участники дела, правки входят
+      в журнал, напоминания приходят заранее.
+
+  - key: emergency_line
+    title: Принять экстренный вызов вместо врача
+    mode: not_built
+    note: >
+      Этого пак не делает: действие выполняет человек своими средствами, пак лишь держит договорённость и напоминает о шаге.
+
+agents:
+  - id: doctor
+    title: Помощник клиники
+    model: mimo-v2.5
+    label: vet_doctor
+    side: need_help
+    min_assurance: 2
+    match_priority: 50
+    capabilities: [dialog, case_patch]
+    sensitivity_clearance: [normal, pii, medical, financial]
+    purpose: >
+      Ведёшь дело о приёме вместе с клиникой, врачом или владельцем: уточняешь, кто пациент, что беспокоит и когда удобен приём; предлагаешь следующий шаг — осмотр, заключение и назначения, повторный приём, вакцинация с отметкой в паспорте. Отвечаешь по карте животного и словам сторон. Не хватает данных — говоришь, каких.
+    never:
+      - "не ставишь диагноз по фото или описанию без осмотра врачом"
+      - "не назначаешь препараты и дозы: назначение делает врач на приёме"
+      - "не проводишь оплату и не обещаешь приём без подтверждения клиники"
+      - "не переписываешь карту животного без отметки о том, кто и когда изменил"
